@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FCA Ledger — Fisherfolk &amp; Cooperative Association Profiling</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#EFEDE3;
+  --bg-alt:#E4E1D3;
+  --paper:#FBFAF6;
+  --ink:#1E2A1F;
+  --ink-soft:#5B6B5D;
+  --green:#2F4F3A;
+  --green-deep:#1B2E22;
+  --gold:#C99A2E;
+  --gold-soft:#EFDFAF;
+  --blue:#3A7CA5;
+  --blue-soft:#DCE9F0;
+  --red:#B33A3A;
+  --red-soft:#F3DEDE;
+  --line:#CFC9AF;
+  --radius:3px;
+  --shadow:0 1px 2px rgba(30,42,31,.06), 0 4px 14px rgba(30,42,31,.05);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:'Public Sans', sans-serif;
+  font-size:14px;
+  line-height:1.5;
+  min-height:100vh;
+}
+h1,h2,h3,h4{font-family:'Fraunces', serif; margin:0; color:var(--green-deep); font-weight:600;}
+.mono{font-family:'IBM Plex Mono', monospace;}
+a{color:inherit;}
+button{font-family:inherit; cursor:pointer;}
+input,select,textarea{font-family:inherit; font-size:13px;}
+
+/* ---------- Layout shell ---------- */
+.shell{display:flex; min-height:100vh;}
+
+.sidebar{
+  width:250px; flex-shrink:0;
+  background:var(--green-deep);
+  color:#E7E5D8;
+  display:flex; flex-direction:column;
+  position:sticky; top:0; height:100vh; overflow-y:auto;
+}
+.brand{
+  padding:22px 20px 16px 20px;
+  border-bottom:1px solid rgba(231,229,216,.14);
+  display:flex; align-items:center; gap:12px;
+}
+.seal{
+  width:38px; height:38px; border-radius:50%;
+  border:2px solid var(--gold);
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Fraunces', serif; font-weight:700; font-size:13px; color:var(--gold);
+  flex-shrink:0;
+}
+.brand-text h1{font-size:15px; color:#F4F2E6; letter-spacing:.3px;}
+.brand-text span{font-size:10.5px; color:#B7BFA8; letter-spacing:.5px; text-transform:uppercase;}
+
+.org-picker{padding:14px 16px; border-bottom:1px solid rgba(231,229,216,.14);}
+.org-picker label{display:block; font-size:10px; text-transform:uppercase; letter-spacing:.6px; color:#9DA88F; margin-bottom:6px;}
+.org-picker select{
+  width:100%; padding:8px 9px; border-radius:var(--radius); border:1px solid rgba(231,229,216,.25);
+  background:rgba(255,255,255,.06); color:#F4F2E6;
+}
+.org-picker select option{color:#1E2A1F;}
+.org-picker .org-actions{display:flex; gap:6px; margin-top:8px;}
+.org-actions button{
+  flex:1; background:transparent; border:1px solid rgba(231,229,216,.28); color:#E7E5D8;
+  padding:6px 4px; font-size:11px; border-radius:var(--radius);
+}
+.org-actions button:hover{background:rgba(231,229,216,.1);}
+
+nav.tabs{padding:10px 10px 20px 10px; flex:1;}
+.tab-group-label{font-size:10px; text-transform:uppercase; letter-spacing:.7px; color:#8B9680; margin:14px 10px 6px 10px;}
+.tab-btn{
+  display:flex; align-items:center; gap:9px; width:100%; text-align:left;
+  padding:9px 10px; border:none; background:transparent; color:#CBD1BE;
+  border-radius:var(--radius); font-size:12.5px; margin-bottom:1px;
+}
+.tab-btn .num{font-family:'IBM Plex Mono', monospace; font-size:10.5px; color:#7C8A72; width:16px;}
+.tab-btn:hover{background:rgba(231,229,216,.07); color:#F4F2E6;}
+.tab-btn.active{background:var(--gold); color:#2A2005; font-weight:600;}
+.tab-btn.active .num{color:#2A2005;}
+
+.main{flex:1; min-width:0; padding:30px 38px 60px 38px;}
+.topline{
+  display:flex; justify-content:space-between; align-items:flex-end;
+  border-bottom:2px solid var(--ink); padding-bottom:14px; margin-bottom:26px;
+}
+.topline .eyebrow{font-size:10.5px; text-transform:uppercase; letter-spacing:.8px; color:var(--ink-soft); margin-bottom:4px;}
+.topline h2{font-size:26px;}
+.topline .meta{font-size:11.5px; color:var(--ink-soft); text-align:right;}
+
+/* ---------- Cards / sections ---------- */
+.card{
+  background:var(--paper); border:1px solid var(--line); border-radius:var(--radius);
+  padding:22px 24px; margin-bottom:20px; box-shadow:var(--shadow);
+}
+.card h3{font-size:15.5px; margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:8px;}
+.card h3 .tag{font-family:'IBM Plex Mono', monospace; font-size:10px; color:var(--gold); background:var(--gold-soft); padding:2px 6px; border-radius:2px; text-transform:uppercase; letter-spacing:.4px;}
+.card .subnote{font-size:11.5px; color:var(--ink-soft); margin:-8px 0 16px 0;}
+
+.grid{display:grid; gap:14px;}
+.grid.c2{grid-template-columns:1fr 1fr;}
+.grid.c3{grid-template-columns:1fr 1fr 1fr;}
+.grid.c4{grid-template-columns:1fr 1fr 1fr 1fr;}
+@media(max-width:900px){.grid.c2,.grid.c3,.grid.c4{grid-template-columns:1fr;}}
+
+.field label{display:block; font-size:11px; color:var(--ink-soft); margin-bottom:4px; text-transform:uppercase; letter-spacing:.3px;}
+.field input[type=text], .field input[type=number], .field select, .field textarea{
+  width:100%; padding:8px 9px; border:1px solid var(--line); border-radius:var(--radius); background:var(--bg);
+  color:var(--ink);
+}
+.field input:focus, .field select:focus, .field textarea:focus{outline:2px solid var(--blue); outline-offset:1px; background:var(--paper);}
+.field textarea{resize:vertical; min-height:56px;}
+
+.checkrow{display:flex; flex-wrap:wrap; gap:8px 18px; margin-top:2px;}
+.checkitem{display:flex; align-items:center; gap:6px; font-size:12.5px;}
+.checkitem input[type=checkbox]{width:15px; height:15px; accent-color:var(--green);}
+
+.yn{display:flex; gap:10px;}
+.yn label{display:flex; align-items:center; gap:5px; font-size:12.5px; border:1px solid var(--line); padding:6px 12px; border-radius:20px; cursor:pointer;}
+.yn input{accent-color:var(--green);}
+.yn label:has(input:checked){background:var(--green); color:#fff; border-color:var(--green);}
+
+/* ---------- Repeatable tables ---------- */
+.rtable-wrap{overflow-x:auto;}
+table.rtable{width:100%; border-collapse:collapse; font-size:12.5px;}
+table.rtable th{
+  text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:.4px; color:var(--ink-soft);
+  padding:6px 7px; border-bottom:1px solid var(--ink); white-space:nowrap;
+}
+table.rtable td{padding:4px 5px; border-bottom:1px solid var(--line); vertical-align:middle;}
+table.rtable td input, table.rtable td select{width:100%; min-width:80px; padding:6px 7px; border:1px solid var(--line); border-radius:2px; background:var(--bg);}
+table.rtable tr:hover td{background:var(--bg-alt);}
+.row-del{background:var(--red-soft); color:var(--red); border:1px solid var(--red); border-radius:2px; width:26px; height:26px; font-size:14px; line-height:1;}
+.row-del:hover{background:var(--red); color:#fff;}
+.add-row-btn{
+  margin-top:10px; background:var(--green); color:#fff; border:none; padding:8px 14px;
+  border-radius:var(--radius); font-size:12px; font-weight:600; letter-spacing:.2px;
+}
+.add-row-btn:hover{background:var(--green-deep);}
+
+/* ---------- Buttons ---------- */
+.btn{padding:9px 16px; border-radius:var(--radius); border:1px solid var(--ink); background:var(--paper); color:var(--ink); font-size:12.5px; font-weight:600;}
+.btn:hover{background:var(--bg-alt);}
+.btn.primary{background:var(--green); color:#fff; border-color:var(--green);}
+.btn.primary:hover{background:var(--green-deep);}
+.btn.gold{background:var(--gold); border-color:var(--gold); color:#2A2005;}
+.save-bar{
+  position:sticky; bottom:0; margin:26px -38px -60px -38px; padding:14px 38px;
+  background:linear-gradient(180deg, rgba(239,237,227,0), var(--bg) 30%);
+  display:flex; justify-content:flex-end; gap:10px; align-items:center;
+}
+.save-status{font-size:11.5px; color:var(--ink-soft); margin-right:auto; font-style:italic;}
+
+/* ---------- Dashboard ---------- */
+.kpis{display:grid; grid-template-columns:repeat(5,1fr); gap:14px; margin-bottom:22px;}
+@media(max-width:1100px){.kpis{grid-template-columns:repeat(2,1fr);}}
+.kpi{background:var(--paper); border:1px solid var(--line); border-left:4px solid var(--green); border-radius:var(--radius); padding:14px 16px; box-shadow:var(--shadow);}
+.kpi .label{font-size:10px; text-transform:uppercase; letter-spacing:.5px; color:var(--ink-soft);}
+.kpi .value{font-family:'Fraunces',serif; font-size:22px; font-weight:600; margin-top:4px; color:var(--green-deep);}
+.kpi .sub{font-size:10.5px; color:var(--ink-soft); margin-top:2px;}
+.kpi.gold{border-left-color:var(--gold);}
+.kpi.blue{border-left-color:var(--blue);}
+.kpi.red{border-left-color:var(--red);}
+
+.charts-grid{display:grid; grid-template-columns:1fr 1fr; gap:20px;}
+@media(max-width:1000px){.charts-grid{grid-template-columns:1fr;}}
+.chart-card{background:var(--paper); border:1px solid var(--line); border-radius:var(--radius); padding:18px 20px; box-shadow:var(--shadow);}
+.chart-card h4{font-size:13px; margin-bottom:12px; text-transform:uppercase; letter-spacing:.4px; color:var(--ink-soft);}
+.chart-card canvas{max-height:250px;}
+.empty-note{font-size:12px; color:var(--ink-soft); text-align:center; padding:30px 0; font-style:italic;}
+
+/* ---------- Report / print ---------- */
+.report-header{display:flex; justify-content:space-between; align-items:flex-start; border-bottom:3px double var(--ink); padding-bottom:14px; margin-bottom:20px;}
+.report-header .stamp{
+  border:2px solid var(--red); color:var(--red); font-family:'IBM Plex Mono', monospace; font-size:10px;
+  padding:6px 10px; transform:rotate(-4deg); border-radius:4px; letter-spacing:1px; text-transform:uppercase;
+}
+.report-section h5{font-size:11px; text-transform:uppercase; letter-spacing:.5px; color:var(--gold); border-bottom:1px solid var(--line); padding-bottom:5px; margin:18px 0 8px 0;}
+.kv{display:grid; grid-template-columns:1fr 1fr; gap:4px 20px; font-size:12px;}
+.kv div{display:flex; justify-content:space-between; border-bottom:1px dotted var(--line); padding:3px 0;}
+.kv div b{font-weight:600;}
+
+@media print{
+  .sidebar, .save-bar, .no-print{display:none !important;}
+  .main{padding:0; margin:0;}
+  body{background:#fff;}
+  .card{box-shadow:none; border:1px solid #999;}
+}
+
+.toast{
+  position:fixed; bottom:24px; right:24px; background:var(--green-deep); color:#F4F2E6;
+  padding:11px 18px; border-radius:var(--radius); font-size:12.5px; box-shadow:0 6px 22px rgba(0,0,0,.25);
+  opacity:0; transform:translateY(8px); transition:all .25s ease; pointer-events:none; z-index:999;
+}
+.toast.show{opacity:1; transform:translateY(0);}
+
+.hidden{display:none !important;}
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="seal">FCA</div>
+      <div class="brand-text">
+        <h1>FCA Ledger</h1>
+        <span>Barangay Profiling System</span>
+      </div>
+    </div>
+
+    <div class="org-picker">
+      <label>Organization Record</label>
+      <select id="orgSelect"></select>
+      <div class="org-actions">
+        <button id="newOrgBtn">+ New</button>
+        <button id="dupOrgBtn">Duplicate</button>
+        <button id="delOrgBtn">Delete</button>
+      </div>
+    </div>
+
+    <nav class="tabs" id="tabNav">
+      <div class="tab-group-label">Overview</div>
+      <button class="tab-btn" data-tab="dashboard"><span class="num">◆</span>Dashboard</button>
+      <button class="tab-btn" data-tab="report"><span class="num">◆</span>Printable Report</button>
+
+      <div class="tab-group-label">Profile</div>
+      <button class="tab-btn" data-tab="org"><span class="num">01</span>Organization</button>
+      <button class="tab-btn" data-tab="barangay"><span class="num">02</span>Barangay Data</button>
+      <button class="tab-btn" data-tab="orgInfo"><span class="num">03</span>Org. Information</button>
+      <button class="tab-btn" data-tab="production"><span class="num">04</span>Fishery / Livestock</button>
+      <button class="tab-btn" data-tab="crops"><span class="num">05</span>Crops Grown</button>
+
+      <div class="tab-group-label">Finance</div>
+      <button class="tab-btn" data-tab="finance"><span class="num">06</span>Financial Status</button>
+      <button class="tab-btn" data-tab="capacity"><span class="num">07</span>Project Capacity</button>
+
+      <div class="tab-group-label">Market Linkages</div>
+      <button class="tab-btn" data-tab="buyers"><span class="num">08</span>Top 5 Buyers</button>
+      <button class="tab-btn" data-tab="providers"><span class="num">09</span>Service Providers</button>
+      <button class="tab-btn" data-tab="financing"><span class="num">10</span>Sources of Financing</button>
+
+      <div class="tab-group-label">Access &amp; Capacity Bldg.</div>
+      <button class="tab-btn" data-tab="access"><span class="num">11</span>Accessibility</button>
+      <button class="tab-btn" data-tab="trainings"><span class="num">12</span>Trainings Attended</button>
+
+      <div class="tab-group-label">Assistance Received</div>
+      <button class="tab-btn" data-tab="equipment"><span class="num">13</span>Equipment / Machinery</button>
+      <button class="tab-btn" data-tab="infra"><span class="num">14</span>Agri-Infrastructure</button>
+      <button class="tab-btn" data-tab="irrigation"><span class="num">15</span>Irrigation Projects</button>
+
+      <div class="tab-group-label">Membership &amp; Land</div>
+      <button class="tab-btn" data-tab="members"><span class="num">16</span>Active Members</button>
+      <button class="tab-btn" data-tab="landreq"><span class="num">17</span>Infra Land Requirements</button>
+    </nav>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <main class="main">
+    <div class="topline">
+      <div>
+        <div class="eyebrow">Farmers / Fisherfolk Cooperative Association</div>
+        <h2 id="pageTitle">Dashboard</h2>
+      </div>
+      <div class="meta" id="pageMeta">—</div>
+    </div>
+
+    <div id="tabContent"></div>
+
+    <div class="save-bar no-print">
+      <span class="save-status" id="saveStatus">All changes saved on this device.</span>
+      <button class="btn" onclick="window.print()">Print Report</button>
+      <button class="btn primary" id="saveBtn">Save Record</button>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================================
+   DATA MODEL
+   ========================================================================= */
+const STORAGE_KEY = 'fca_ledger_records_v1';
+const SHEET_WEB_APP_KEY = 'fca_ledger_google_script_url_v1';
+const SHEET_SETUP_DONE_KEY = 'fca_ledger_google_sheet_setup_done_v1';
+const DEFAULT_SHEET_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwmCCVUEX5VgXpZJTfZPnYpSt1m3e1eTSSapa-vvRoLFlcvA6XjZS76AwHoshchXXrh/exec';
+const ENTRY_API_TOKEN = 'FCA_ENTRY_2026_CDO_PRIVATE_7K9P3X2M';
+
+function blankRecord(name){
+  return {
+    id: 'fca_' + Date.now() + Math.floor(Math.random()*999),
+    org: { name: name || 'Untitled FCA', address: '' },
+    barangay: {
+      totalLandArea:'', totalFarmArea:'',
+      potentialIrrLowland:'', potentialIrrHighland:'', potentialNotIrrigated:'',
+      elevation:'',
+      waterLevel1:'', waterLevel2:'', waterLevel3:'',
+      waterSource:[], electricity:[], communication:[], topography:[]
+    },
+    orgInfo: {
+      tenure: { owned_titled:'', owned_taxdec:'', lease:'', tenants:'', flgma:'', cbfma:'', others:'' },
+      existence: { constitution:false, resolutions:false, workplan:false, budget:false, attendance:false }
+    },
+    production: [], // {item, heads}
+    crops: [], // {crop, has, season, irrigated, yield, value, potential}
+    finance: {
+      assets:{cash:'', receivables:'', inventories:'', other:'', prevYear:''},
+      liabilities:{shortTerm:'', longTerm:''},
+      capital:{buildup:'', retained:''},
+      revenue:{netSales:'', interestLoan:'', interestBank:'', saleAssets:'', donation:'', other:''},
+      expenses:{salaries:'', equipment:'', adminOther:'', other:''}
+    },
+    capacity: {
+      electricalWater:'', legalDocs:'', sustainOps:'', counterpart:'', shed:'', lowerFee:''
+    },
+    buyers: [], // {name,address,commodity,practices,other,contact}
+    providers: [], // {item,type,name,address,charges,contact}
+    financing: [], // {name,address,min,max,scheme,contact}
+    access: { distProduction:'', distMarket:'', distRoad:'', roadConnection:'', roadType:'' },
+    trainings: [], // {title,date,sponsor}
+    equipment: [], // {item,status,dateReceived,years,receivedFrom}
+    infra: [], // {name,status,dateReceived,years,receivedFrom}
+    irrigation: [], // {name,status,dateReceived,years,receivedFrom}
+    members: [], // {name,area}
+    landreq: [] // {name,tenure,infraType,area}
+  };
+}
+
+let records = [];
+let currentId = null;
+let currentTab = 'dashboard';
+let charts = {};
+
+function loadRecords(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    records = raw ? JSON.parse(raw) : [];
+  }catch(e){ records = []; }
+  if(records.length === 0){
+    records.push(blankRecord('Sample Fisherfolk Association'));
+  }
+  records.forEach(cleanLegacyRankFields);
+  currentId = records[0].id;
+}
+function persist(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+  const s = document.getElementById('saveStatus');
+  s.textContent = 'Saved ' + new Date().toLocaleTimeString();
+}
+function getCurrent(){ return records.find(r=>r.id===currentId); }
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 1800);
+}
+
+/* =========================================================================
+   ORG PICKER
+   ========================================================================= */
+function renderOrgSelect(){
+  const sel = document.getElementById('orgSelect');
+  sel.innerHTML = records.map(r=>`<option value="${r.id}" ${r.id===currentId?'selected':''}>${escapeHtml(r.org.name||'Untitled FCA')}</option>`).join('');
+}
+document.getElementById('orgSelect').addEventListener('change', e=>{
+  currentId = e.target.value;
+  renderTab();
+});
+document.getElementById('newOrgBtn').addEventListener('click', ()=>{
+  const rec = blankRecord('New FCA Organization');
+  records.push(rec);
+  currentId = rec.id;
+  persist(); renderOrgSelect(); renderTab();
+  showToast('New organization record created.');
+});
+document.getElementById('dupOrgBtn').addEventListener('click', ()=>{
+  const cur = getCurrent();
+  const copy = JSON.parse(JSON.stringify(cur));
+  copy.id = 'fca_' + Date.now() + Math.floor(Math.random()*999);
+  copy.org.name = copy.org.name + ' (Copy)';
+  records.push(copy);
+  currentId = copy.id;
+  persist(); renderOrgSelect(); renderTab();
+  showToast('Record duplicated.');
+});
+document.getElementById('delOrgBtn').addEventListener('click', async ()=>{
+  if(records.length <= 1){ showToast('At least one record must remain.'); return; }
+  if(!confirm('Delete this organization record? This cannot be undone.')) return;
+  const deletedId = currentId;
+  records = records.filter(r=>r.id!==currentId);
+  currentId = records[0].id;
+  persist(); renderOrgSelect(); renderTab();
+  showToast('Record deleted locally. Syncing delete to Google Sheet...');
+  await deleteRecordFromSheetBackend(deletedId);
+});
+document.getElementById('saveBtn').addEventListener('click', async ()=>{
+  persist();
+  showToast('Record saved. Syncing to Google Sheet...');
+  await syncCurrentRecordToSheetBackend();
+});
+
+/* =========================================================================
+   TAB NAV
+   ========================================================================= */
+document.getElementById('tabNav').addEventListener('click', e=>{
+  const btn = e.target.closest('.tab-btn');
+  if(!btn) return;
+  currentTab = btn.dataset.tab;
+  renderTab();
+});
+
+const TAB_TITLES = {
+  dashboard:'Dashboard', report:'Printable Report',
+  org:'Organization', barangay:'Barangay Data', orgInfo:'Organizational Information',
+  production:'Major Fishery, Livestock &amp; Poultry Raised', crops:'Major Crops Grown &amp; Area Planted',
+  finance:'Financial Status', capacity:'Organizational Project Capacity',
+  buyers:'Top 5 Buyers', providers:'Main Business Service Providers', financing:'Top 5 Sources of Financing',
+  access:'Accessibility', trainings:'Capacity Enhancement Activities',
+  equipment:'Materials, Equipment &amp; Farm Machineries Received', infra:'Agri-Infrastructures Received',
+  irrigation:'Irrigation Projects Received', members:'List of Active Members', landreq:'Agricultural Infrastructure Land Requirements'
+};
+
+function escapeHtml(str){
+  if(str===undefined || str===null) return '';
+  return String(str).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function fmtNum(n){
+  n = parseFloat(n);
+  if(isNaN(n)) return '0';
+  return n.toLocaleString('en-PH', {maximumFractionDigits:2});
+}
+function fmtPhp(n){
+  n = parseFloat(n) || 0;
+  return '₱' + n.toLocaleString('en-PH', {maximumFractionDigits:2});
+}
+
+function sortByNumberDesc(arr, key){
+  return [...(arr || [])].sort((a,b)=>(parseFloat(b[key])||0) - (parseFloat(a[key])||0));
+}
+
+function cleanLegacyRankFields(record){
+  (record.production || []).forEach(row=>{ if(row && Object.prototype.hasOwnProperty.call(row,'rank')) delete row.rank; });
+  (record.crops || []).forEach(row=>{ if(row && Object.prototype.hasOwnProperty.call(row,'rank')) delete row.rank; });
+}
+
+function getSheetWebAppUrl(){
+  return localStorage.getItem(SHEET_WEB_APP_KEY) || DEFAULT_SHEET_WEB_APP_URL;
+}
+function setSheetWebAppUrl(v){
+  localStorage.setItem(SHEET_WEB_APP_KEY, (v || '').trim());
+}
+async function sheetRequest(action, payload={}){
+  const url = getSheetWebAppUrl();
+  if(!url) throw new Error('Please paste the Google Apps Script Web App URL first.');
+  const res = await fetch(url, {
+    method:'POST',
+    headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body: JSON.stringify({action, token: ENTRY_API_TOKEN, ...payload})
+  });
+  const data = await res.json();
+  if(!data.ok) throw new Error(data.message || 'Google Sheet request failed.');
+  return data;
+}
+async function setupGoogleSheet(){
+  try{
+    showToast('Creating / formatting Google Sheet tabs...');
+    await sheetRequest('setup');
+    showToast('Google Sheet tabs are ready.');
+  }catch(err){ showToast(err.message); }
+}
+async function syncCurrentRecordToSheet(){
+  try{
+    const rec = getCurrent();
+    cleanLegacyRankFields(rec);
+    persist();
+    showToast('Saving current record to Google Sheet...');
+    await sheetRequest('saveRecord', {record: rec});
+    showToast('Current record saved to Google Sheet.');
+  }catch(err){ showToast(err.message); }
+}
+async function ensureSheetSetupBackend(){
+  if(localStorage.getItem(SHEET_SETUP_DONE_KEY) === 'yes') return;
+  await sheetRequest('setup');
+  localStorage.setItem(SHEET_SETUP_DONE_KEY, 'yes');
+}
+async function syncCurrentRecordToSheetBackend(){
+  try{
+    const rec = getCurrent();
+    cleanLegacyRankFields(rec);
+    persist();
+    await ensureSheetSetupBackend();
+    await sheetRequest('saveRecord', {record: rec});
+    const s = document.getElementById('saveStatus');
+    if(s) s.textContent = 'Saved to this device and Google Sheet at ' + new Date().toLocaleTimeString();
+    showToast('Record saved to Google Sheet.');
+  }catch(err){
+    const s = document.getElementById('saveStatus');
+    if(s) s.textContent = 'Saved on this device. Google Sheet sync failed: ' + err.message;
+    showToast('Saved on this device. Google Sheet sync failed.');
+  }
+}
+async function syncAllRecordsToSheet(){
+  try{
+    records.forEach(cleanLegacyRankFields);
+    persist();
+    showToast('Saving all records to Google Sheet...');
+    await sheetRequest('saveAllRecords', {records});
+    showToast('All records saved to Google Sheet.');
+  }catch(err){ showToast(err.message); }
+}
+async function loadRecordsFromSheet(){
+  try{
+    if(!confirm('Load records from Google Sheet? This will replace the records currently saved on this device.')) return;
+    showToast('Loading records from Google Sheet...');
+    const data = await sheetRequest('listRecords');
+    records = Array.isArray(data.records) && data.records.length ? data.records : [blankRecord('New FCA Organization')];
+    records.forEach(cleanLegacyRankFields);
+    currentId = records[0].id;
+    persist();
+    renderOrgSelect();
+    renderTab();
+    showToast('Records loaded from Google Sheet.');
+  }catch(err){ showToast(err.message); }
+}
+
+async function loadRecordsFromSheetOnStartup(){
+  try{
+    const s = document.getElementById('saveStatus');
+    if(s) s.textContent = 'Loading shared Google Sheet data...';
+    await ensureSheetSetupBackend();
+    const data = await sheetRequest('listRecords');
+    if(Array.isArray(data.records) && data.records.length){
+      records = data.records;
+      records.forEach(cleanLegacyRankFields);
+      currentId = records[0].id;
+      persist();
+      renderOrgSelect();
+      renderTab();
+      if(s) s.textContent = 'Loaded shared Google Sheet data at ' + new Date().toLocaleTimeString();
+    }else{
+      await syncAllRecordsToSheetBackendSilent();
+      if(s) s.textContent = 'No shared records found. Local starter record is ready.';
+    }
+  }catch(err){
+    const s = document.getElementById('saveStatus');
+    if(s) s.textContent = 'Using local data. Google Sheet load failed: ' + err.message;
+  }
+}
+async function syncAllRecordsToSheetBackendSilent(){
+  records.forEach(cleanLegacyRankFields);
+  persist();
+  await ensureSheetSetupBackend();
+  await sheetRequest('saveAllRecords', {records});
+}
+async function deleteRecordFromSheetBackend(id){
+  try{
+    await ensureSheetSetupBackend();
+    await sheetRequest('deleteRecord', {recordId:id});
+    showToast('Record deleted from Google Sheet.');
+  }catch(err){
+    showToast('Deleted locally. Google Sheet delete failed.');
+  }
+}
+
+function renderTab(){
+  renderOrgSelect();
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===currentTab));
+  document.getElementById('pageTitle').innerHTML = TAB_TITLES[currentTab];
+  const rec = getCurrent();
+  document.getElementById('pageMeta').textContent = rec.org.name ? rec.org.name + (rec.org.address? ' · ' + rec.org.address : '') : '—';
+
+  const isReportOrDash = (currentTab==='dashboard' || currentTab==='report');
+  document.querySelector('.save-bar').style.display = isReportOrDash ? 'none' : 'flex';
+
+  const c = document.getElementById('tabContent');
+  const renderers = {
+    dashboard: renderDashboard, report: renderReport,
+    org: renderOrgTab, barangay: renderBarangayTab, orgInfo: renderOrgInfoTab,
+    production: ()=>renderRepeatable('production', PRODUCTION_COLS, 'Add livestock / fishery / poultry line'),
+    crops: ()=>renderRepeatable('crops', CROPS_COLS, 'Add crop'),
+    finance: renderFinanceTab, capacity: renderCapacityTab,
+    buyers: ()=>renderRepeatable('buyers', BUYERS_COLS, 'Add buyer'),
+    providers: ()=>renderRepeatable('providers', PROVIDERS_COLS, 'Add service provider'),
+    financing: ()=>renderRepeatable('financing', FINANCING_COLS, 'Add financing source'),
+    access: renderAccessTab,
+    trainings: ()=>renderRepeatable('trainings', TRAININGS_COLS, 'Add training / seminar'),
+    equipment: ()=>renderRepeatable('equipment', ASSISTANCE_COLS, 'Add equipment / machinery'),
+    infra: ()=>renderRepeatable('infra', INFRA_COLS, 'Add infrastructure project'),
+    irrigation: ()=>renderRepeatable('irrigation', INFRA_COLS, 'Add irrigation project'),
+    members: ()=>renderRepeatable('members', MEMBERS_COLS, 'Add member'),
+    landreq: ()=>renderRepeatable('landreq', LANDREQ_COLS, 'Add land requirement entry'),
+  };
+  c.innerHTML = '';
+  (renderers[currentTab] || renderDashboard)();
+}
+
+/* =========================================================================
+   SIMPLE FIELD BINDING HELPERS
+   ========================================================================= */
+function bindInput(el, getVal, setVal){
+  el.value = getVal() ?? '';
+  el.addEventListener('input', ()=>{ setVal(el.value); });
+}
+function bindCheckbox(el, getVal, setVal){
+  el.checked = !!getVal();
+  el.addEventListener('change', ()=>{ setVal(el.checked); });
+}
+
+/* =========================================================================
+   TAB: ORGANIZATION
+   ========================================================================= */
+function renderOrgTab(){
+  const rec = getCurrent();
+  const c = document.getElementById('tabContent');
+  c.innerHTML = `
+    <div class="card">
+      <h3>Organization Identity <span class="tag">FCA</span></h3>
+      <div class="grid c2">
+        <div class="field"><label>Name of Organization</label><input type="text" id="f_orgname"></div>
+        <div class="field"><label>Office Address</label><input type="text" id="f_orgaddr"></div>
+      </div>
+    </div>`;
+  bindInput(document.getElementById('f_orgname'), ()=>rec.org.name, v=>{rec.org.name=v; renderOrgSelect(); document.getElementById('pageMeta').textContent=v;});
+  bindInput(document.getElementById('f_orgaddr'), ()=>rec.org.address, v=>{rec.org.address=v;});
+}
+
+/* =========================================================================
+   TAB: BARANGAY DATA
+   ========================================================================= */
+const WATER_SOURCES = ['Spring','River','Stream','Shallow Well','Reservoir','CWD'];
+const ELECTRICITY_OPTS = ['CEPALCO','Single Phase','MORESCO','3 Phase'];
+const COMM_OPTS = ['Globe','TM','Smart','Dito','Talk n Text'];
+const TOPO_OPTS = ['Flat','Rolling','Hillside','Mountainous','Seaside','Swampy','Valley','Riverside'];
+
+function renderBarangayTab(){
+  const rec = getCurrent();
+  const b = rec.barangay;
+  const c = document.getElementById('tabContent');
+  c.innerHTML = `
+    <div class="card">
+      <h3>Land Area</h3>
+      <div class="grid c3">
+        <div class="field"><label>Total Land Area (Has.)</label><input type="number" step="0.01" id="f_totalLand"></div>
+        <div class="field"><label>Total Farm Area (Has.)</label><input type="number" step="0.01" id="f_totalFarm"></div>
+        <div class="field"><label>Elevation</label><input type="text" id="f_elevation"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Potential Farm Area (Has.)</h3>
+      <div class="grid c3">
+        <div class="field"><label>Irrigated — Lowland</label><input type="number" step="0.01" id="f_irrLow"></div>
+        <div class="field"><label>Irrigated — Highland</label><input type="number" step="0.01" id="f_irrHigh"></div>
+        <div class="field"><label>Not Irrigated</label><input type="number" step="0.01" id="f_notIrr"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Water System (No. of Connections)</h3>
+      <div class="grid c3">
+        <div class="field"><label>Level 1 (at source)</label><input type="number" id="f_wl1"></div>
+        <div class="field"><label>Level 2 (communal)</label><input type="number" id="f_wl2"></div>
+        <div class="field"><label>Level 3 (household)</label><input type="number" id="f_wl3"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Water Source</h3>
+      <div class="checkrow" id="grp_water"></div>
+    </div>
+    <div class="card">
+      <h3>Electricity</h3>
+      <div class="checkrow" id="grp_elec"></div>
+    </div>
+    <div class="card">
+      <h3>Communication Network</h3>
+      <div class="checkrow" id="grp_comm"></div>
+    </div>
+    <div class="card">
+      <h3>Topography</h3>
+      <div class="checkrow" id="grp_topo"></div>
+    </div>
+  `;
+  bindInput(document.getElementById('f_totalLand'), ()=>b.totalLandArea, v=>b.totalLandArea=v);
+  bindInput(document.getElementById('f_totalFarm'), ()=>b.totalFarmArea, v=>b.totalFarmArea=v);
+  bindInput(document.getElementById('f_elevation'), ()=>b.elevation, v=>b.elevation=v);
+  bindInput(document.getElementById('f_irrLow'), ()=>b.potentialIrrLowland, v=>b.potentialIrrLowland=v);
+  bindInput(document.getElementById('f_irrHigh'), ()=>b.potentialIrrHighland, v=>b.potentialIrrHighland=v);
+  bindInput(document.getElementById('f_notIrr'), ()=>b.potentialNotIrrigated, v=>b.potentialNotIrrigated=v);
+  bindInput(document.getElementById('f_wl1'), ()=>b.waterLevel1, v=>b.waterLevel1=v);
+  bindInput(document.getElementById('f_wl2'), ()=>b.waterLevel2, v=>b.waterLevel2=v);
+  bindInput(document.getElementById('f_wl3'), ()=>b.waterLevel3, v=>b.waterLevel3=v);
+
+  renderCheckGroup('grp_water', WATER_SOURCES, b.waterSource);
+  renderCheckGroup('grp_elec', ELECTRICITY_OPTS, b.electricity);
+  renderCheckGroup('grp_comm', COMM_OPTS, b.communication);
+  renderCheckGroup('grp_topo', TOPO_OPTS, b.topography);
+}
+function renderCheckGroup(containerId, options, arrRef){
+  const el = document.getElementById(containerId);
+  el.innerHTML = options.map((o,i)=>`
+    <label class="checkitem"><input type="checkbox" data-opt="${escapeHtml(o)}" ${arrRef.includes(o)?'checked':''}> ${escapeHtml(o)}</label>
+  `).join('');
+  el.querySelectorAll('input[type=checkbox]').forEach(cb=>{
+    cb.addEventListener('change', ()=>{
+      const opt = cb.dataset.opt;
+      const idx = arrRef.indexOf(opt);
+      if(cb.checked && idx===-1) arrRef.push(opt);
+      if(!cb.checked && idx!==-1) arrRef.splice(idx,1);
+    });
+  });
+}
+
+/* =========================================================================
+   TAB: ORGANIZATIONAL INFORMATION
+   ========================================================================= */
+function renderOrgInfoTab(){
+  const rec = getCurrent();
+  const t = rec.orgInfo.tenure;
+  const ex = rec.orgInfo.existence;
+  const c = document.getElementById('tabContent');
+  c.innerHTML = `
+    <div class="card">
+      <h3>Land Tenure of Members (Number)</h3>
+      <div class="grid c4">
+        <div class="field"><label>Owned (Titled Lot)</label><input type="number" id="f_t1"></div>
+        <div class="field"><label>Owned (Tax Dec)</label><input type="number" id="f_t2"></div>
+        <div class="field"><label>Lease</label><input type="number" id="f_t3"></div>
+        <div class="field"><label>Tenants</label><input type="number" id="f_t4"></div>
+        <div class="field"><label>FLGMA Holder</label><input type="number" id="f_t5"></div>
+        <div class="field"><label>CBFMA Holder</label><input type="number" id="f_t6"></div>
+        <div class="field"><label>Others</label><input type="number" id="f_t7"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Existence Of</h3>
+      <div class="grid c2">
+        <label class="checkitem"><input type="checkbox" id="f_e1"> Written Constitution and By-Laws</label>
+        <label class="checkitem"><input type="checkbox" id="f_e2"> Record of Resolutions</label>
+        <label class="checkitem"><input type="checkbox" id="f_e3"> Written Annual Workplan</label>
+        <label class="checkitem"><input type="checkbox" id="f_e4"> Written Annual Budget</label>
+        <label class="checkitem"><input type="checkbox" id="f_e5"> Attendance Log Book</label>
+      </div>
+    </div>`;
+  bindInput(document.getElementById('f_t1'), ()=>t.owned_titled, v=>t.owned_titled=v);
+  bindInput(document.getElementById('f_t2'), ()=>t.owned_taxdec, v=>t.owned_taxdec=v);
+  bindInput(document.getElementById('f_t3'), ()=>t.lease, v=>t.lease=v);
+  bindInput(document.getElementById('f_t4'), ()=>t.tenants, v=>t.tenants=v);
+  bindInput(document.getElementById('f_t5'), ()=>t.flgma, v=>t.flgma=v);
+  bindInput(document.getElementById('f_t6'), ()=>t.cbfma, v=>t.cbfma=v);
+  bindInput(document.getElementById('f_t7'), ()=>t.others, v=>t.others=v);
+  bindCheckbox(document.getElementById('f_e1'), ()=>ex.constitution, v=>ex.constitution=v);
+  bindCheckbox(document.getElementById('f_e2'), ()=>ex.resolutions, v=>ex.resolutions=v);
+  bindCheckbox(document.getElementById('f_e3'), ()=>ex.workplan, v=>ex.workplan=v);
+  bindCheckbox(document.getElementById('f_e4'), ()=>ex.budget, v=>ex.budget=v);
+  bindCheckbox(document.getElementById('f_e5'), ()=>ex.attendance, v=>ex.attendance=v);
+}
+
+/* =========================================================================
+   TAB: FINANCIAL STATUS
+   ========================================================================= */
+function renderFinanceTab(){
+  const rec = getCurrent();
+  const f = rec.finance;
+  const c = document.getElementById('tabContent');
+  c.innerHTML = `
+    <div class="card">
+      <h3>Assets</h3>
+      <div class="grid c4">
+        <div class="field"><label>Cash</label><input type="number" step="0.01" id="a1"></div>
+        <div class="field"><label>Current Receivables</label><input type="number" step="0.01" id="a2"></div>
+        <div class="field"><label>Inventories</label><input type="number" step="0.01" id="a3"></div>
+        <div class="field"><label>Other Assets</label><input type="number" step="0.01" id="a4"></div>
+      </div>
+      <div class="grid c2" style="margin-top:10px;">
+        <div class="field"><label>Previous Year Total Assets</label><input type="number" step="0.01" id="a5"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Liabilities</h3>
+      <div class="grid c2">
+        <div class="field"><label>Short-Term Loans (1 Year)</label><input type="number" step="0.01" id="l1"></div>
+        <div class="field"><label>Long-Term Loans</label><input type="number" step="0.01" id="l2"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Capital</h3>
+      <div class="grid c2">
+        <div class="field"><label>Members Capital Build-up</label><input type="number" step="0.01" id="k1"></div>
+        <div class="field"><label>Retained Earnings</label><input type="number" step="0.01" id="k2"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Sources of Revenue</h3>
+      <div class="grid c3">
+        <div class="field"><label>Net Sales</label><input type="number" step="0.01" id="r1"></div>
+        <div class="field"><label>Interest from Loan Receivables</label><input type="number" step="0.01" id="r2"></div>
+        <div class="field"><label>Interest from Banks &amp; Investments</label><input type="number" step="0.01" id="r3"></div>
+        <div class="field"><label>Sales of Assets</label><input type="number" step="0.01" id="r4"></div>
+        <div class="field"><label>Donation</label><input type="number" step="0.01" id="r5"></div>
+        <div class="field"><label>Other Revenues</label><input type="number" step="0.01" id="r6"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Expenses</h3>
+      <div class="grid c4">
+        <div class="field"><label>Salaries, Honoraria &amp; Benefits</label><input type="number" step="0.01" id="x1"></div>
+        <div class="field"><label>Equipment &amp; Fixed Assets</label><input type="number" step="0.01" id="x2"></div>
+        <div class="field"><label>Other Admin Expenses</label><input type="number" step="0.01" id="x3"></div>
+        <div class="field"><label>Other Expenses</label><input type="number" step="0.01" id="x4"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Computed Summary</h3>
+      <div class="kv" id="finSummary"></div>
+    </div>
+  `;
+  bindInput(document.getElementById('a1'), ()=>f.assets.cash, v=>{f.assets.cash=v; updateFinSummary();});
+  bindInput(document.getElementById('a2'), ()=>f.assets.receivables, v=>{f.assets.receivables=v; updateFinSummary();});
+  bindInput(document.getElementById('a3'), ()=>f.assets.inventories, v=>{f.assets.inventories=v; updateFinSummary();});
+  bindInput(document.getElementById('a4'), ()=>f.assets.other, v=>{f.assets.other=v; updateFinSummary();});
+  bindInput(document.getElementById('a5'), ()=>f.assets.prevYear, v=>{f.assets.prevYear=v; updateFinSummary();});
+  bindInput(document.getElementById('l1'), ()=>f.liabilities.shortTerm, v=>{f.liabilities.shortTerm=v; updateFinSummary();});
+  bindInput(document.getElementById('l2'), ()=>f.liabilities.longTerm, v=>{f.liabilities.longTerm=v; updateFinSummary();});
+  bindInput(document.getElementById('k1'), ()=>f.capital.buildup, v=>{f.capital.buildup=v; updateFinSummary();});
+  bindInput(document.getElementById('k2'), ()=>f.capital.retained, v=>{f.capital.retained=v; updateFinSummary();});
+  bindInput(document.getElementById('r1'), ()=>f.revenue.netSales, v=>{f.revenue.netSales=v; updateFinSummary();});
+  bindInput(document.getElementById('r2'), ()=>f.revenue.interestLoan, v=>{f.revenue.interestLoan=v; updateFinSummary();});
+  bindInput(document.getElementById('r3'), ()=>f.revenue.interestBank, v=>{f.revenue.interestBank=v; updateFinSummary();});
+  bindInput(document.getElementById('r4'), ()=>f.revenue.saleAssets, v=>{f.revenue.saleAssets=v; updateFinSummary();});
+  bindInput(document.getElementById('r5'), ()=>f.revenue.donation, v=>{f.revenue.donation=v; updateFinSummary();});
+  bindInput(document.getElementById('r6'), ()=>f.revenue.other, v=>{f.revenue.other=v; updateFinSummary();});
+  bindInput(document.getElementById('x1'), ()=>f.expenses.salaries, v=>{f.expenses.salaries=v; updateFinSummary();});
+  bindInput(document.getElementById('x2'), ()=>f.expenses.equipment, v=>{f.expenses.equipment=v; updateFinSummary();});
+  bindInput(document.getElementById('x3'), ()=>f.expenses.adminOther, v=>{f.expenses.adminOther=v; updateFinSummary();});
+  bindInput(document.getElementById('x4'), ()=>f.expenses.other, v=>{f.expenses.other=v; updateFinSummary();});
+  updateFinSummary();
+}
+function financeTotals(f){
+  const num = v => parseFloat(v)||0;
+  const totalAssets = num(f.assets.cash)+num(f.assets.receivables)+num(f.assets.inventories)+num(f.assets.other);
+  const totalLiab = num(f.liabilities.shortTerm)+num(f.liabilities.longTerm);
+  const totalCapital = num(f.capital.buildup)+num(f.capital.retained);
+  const totalRevenue = num(f.revenue.netSales)+num(f.revenue.interestLoan)+num(f.revenue.interestBank)+num(f.revenue.saleAssets)+num(f.revenue.donation)+num(f.revenue.other);
+  const totalExpenses = num(f.expenses.salaries)+num(f.expenses.equipment)+num(f.expenses.adminOther)+num(f.expenses.other);
+  const netIncome = totalRevenue - totalExpenses;
+  return {totalAssets, totalLiab, totalCapital, totalRevenue, totalExpenses, netIncome};
+}
+function updateFinSummary(){
+  const rec = getCurrent();
+  const t = financeTotals(rec.finance);
+  const el = document.getElementById('finSummary');
+  if(!el) return;
+  el.innerHTML = `
+    <div><span>Total Assets</span><b>${fmtPhp(t.totalAssets)}</b></div>
+    <div><span>Total Liabilities</span><b>${fmtPhp(t.totalLiab)}</b></div>
+    <div><span>Total Capital</span><b>${fmtPhp(t.totalCapital)}</b></div>
+    <div><span>Total Revenue</span><b>${fmtPhp(t.totalRevenue)}</b></div>
+    <div><span>Total Expenses</span><b>${fmtPhp(t.totalExpenses)}</b></div>
+    <div><span>Net Income</span><b style="color:${t.netIncome>=0?'var(--green)':'var(--red)'}">${fmtPhp(t.netIncome)}</b></div>
+  `;
+}
+
+/* =========================================================================
+   TAB: PROJECT CAPACITY (yes/no)
+   ========================================================================= */
+const CAPACITY_QS = [
+  ['electricalWater', 'Capacity and willingness to shoulder cost of installation of electrical system & water'],
+  ['legalDocs', 'Capacity to provide required legal documents for project request and project grants'],
+  ['sustainOps', 'Capacity to sustain operations, repair and maintenance of projects'],
+  ['counterpart', 'Ready to provide counterpart for site development'],
+  ['shed', 'Readiness of appropriate shed for the requested machinery'],
+  ['lowerFee', 'Willingness to provide lower service fee compared to the prevailing'],
+];
+function renderCapacityTab(){
+  const rec = getCurrent();
+  const cap = rec.capacity;
+  const c = document.getElementById('tabContent');
+  c.innerHTML = `<div class="card"><h3>Organizational Project Capacity</h3>
+    <div class="grid c2" id="capGrid" style="row-gap:20px;"></div>
+  </div>`;
+  const grid = document.getElementById('capGrid');
+  grid.innerHTML = CAPACITY_QS.map(([key,label])=>`
+    <div class="field">
+      <label style="text-transform:none; font-size:12.5px; color:var(--ink);">${label}</label>
+      <div class="yn">
+        <label><input type="radio" name="cap_${key}" value="Yes"> Yes</label>
+        <label><input type="radio" name="cap_${key}" value="No"> No</label>
+      </div>
+    </div>
+  `).join('');
+  CAPACITY_QS.forEach(([key])=>{
+    const radios = grid.querySelectorAll(`input[name="cap_${key}"]`);
+    radios.forEach(r=>{
+      r.checked = (cap[key] === r.value);
+      r.addEventListener('change', ()=>{ cap[key] = r.value; });
+    });
+  });
+}
+
+/* =========================================================================
+   TAB: ACCESSIBILITY
+   ========================================================================= */
+function renderAccessTab(){
+  const rec = getCurrent();
+  const a = rec.access;
+  const c = document.getElementById('tabContent');
+  c.innerHTML = `
+    <div class="card">
+      <h3>Accessibility and Proximity (Kilometers)</h3>
+      <div class="grid c3">
+        <div class="field"><label>Distance to Production Area</label><input type="number" step="0.1" id="ac1"></div>
+        <div class="field"><label>Distance to Nearest Market / Trading Post</label><input type="number" step="0.1" id="ac2"></div>
+        <div class="field"><label>Distance of Facilities to Nearest Road</label><input type="number" step="0.1" id="ac3"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Road Connection</h3>
+      <div class="grid c2">
+        <div class="field"><label>Road Connection</label><input type="text" id="ac4" placeholder="e.g. All-weather, Barangay road"></div>
+        <div class="field"><label>Road Type</label><input type="text" id="ac5" placeholder="e.g. Concrete, Gravel, Dirt"></div>
+      </div>
+    </div>`;
+  bindInput(document.getElementById('ac1'), ()=>a.distProduction, v=>a.distProduction=v);
+  bindInput(document.getElementById('ac2'), ()=>a.distMarket, v=>a.distMarket=v);
+  bindInput(document.getElementById('ac3'), ()=>a.distRoad, v=>a.distRoad=v);
+  bindInput(document.getElementById('ac4'), ()=>a.roadConnection, v=>a.roadConnection=v);
+  bindInput(document.getElementById('ac5'), ()=>a.roadType, v=>a.roadType=v);
+}
+
+/* =========================================================================
+   GENERIC REPEATABLE TABLE ENGINE
+   ========================================================================= */
+const PRODUCTION_COLS = [
+  {key:'item', label:'Commodity / Livestock / Poultry', type:'text'},
+  {key:'heads', label:'No. of Heads', type:'number'},
+];
+const CROPS_COLS = [
+  {key:'crop', label:'Commodity Planted', type:'text'},
+  {key:'has', label:'Area (Ha.)', type:'number'},
+  {key:'season', label:'Cropping Season', type:'text'},
+  {key:'irrigated', label:'Irrigated (Ha)', type:'number'},
+  {key:'yield', label:'Annual Yield (Tons/Ha)', type:'number'},
+  {key:'value', label:'Avg. Value (Php/Kg)', type:'number'},
+  {key:'potential', label:'Potential Farm Area (Ha)', type:'number'},
+];
+const BUYERS_COLS = [
+  {key:'name', label:'Name', type:'text'},
+  {key:'address', label:'Address', type:'text'},
+  {key:'commodity', label:'Commodity', type:'text'},
+  {key:'practices', label:'Buying Practices', type:'text'},
+  {key:'other', label:'Other Info', type:'text'},
+  {key:'contact', label:'Contact Number', type:'text'},
+];
+const PROVIDERS_COLS = [
+  {key:'item', label:'Item', type:'select', options:['Production-related','Postharvest-related']},
+  {key:'type', label:'Type of Service', type:'text'},
+  {key:'name', label:'Name', type:'text'},
+  {key:'address', label:'Address', type:'text'},
+  {key:'charges', label:'Service Charges & Other', type:'text'},
+  {key:'contact', label:'Contact Number', type:'text'},
+];
+const FINANCING_COLS = [
+  {key:'name', label:'Name (Individual/MFI/Bank/Coop)', type:'text'},
+  {key:'address', label:'Address', type:'text'},
+  {key:'min', label:'Loan Amount — Min', type:'number'},
+  {key:'max', label:'Loan Amount — Max', type:'number'},
+  {key:'scheme', label:'Financing Scheme / Practices', type:'text'},
+  {key:'contact', label:'Contact Number', type:'text'},
+];
+const TRAININGS_COLS = [
+  {key:'title', label:'Title of Training / Seminar', type:'text'},
+  {key:'date', label:'Date Conducted', type:'text'},
+  {key:'sponsor', label:'Conducted / Sponsored By', type:'text'},
+];
+const ASSISTANCE_COLS = [
+  {key:'item', label:'Materials / Equipment / Machinery', type:'text'},
+  {key:'status', label:'Status', type:'select', options:['Functional','Non-functional']},
+  {key:'dateReceived', label:'Date Received', type:'text'},
+  {key:'years', label:'Years of Sustainable Operation', type:'number'},
+  {key:'receivedFrom', label:'Received From', type:'text'},
+];
+const INFRA_COLS = [
+  {key:'name', label:'Name of Project', type:'text'},
+  {key:'status', label:'Status', type:'select', options:['Functional','Non-functional']},
+  {key:'dateReceived', label:'Date Received', type:'text'},
+  {key:'years', label:'Years of Sustainable Operation', type:'number'},
+  {key:'receivedFrom', label:'Received From', type:'text'},
+];
+const MEMBERS_COLS = [
+  {key:'name', label:'Full Name', type:'text'},
+  {key:'area', label:'Area (Ha.)', type:'number'},
+];
+const LANDREQ_COLS = [
+  {key:'name', label:'Name', type:'text'},
+  {key:'tenure', label:'Type of Land Tenure', type:'text'},
+  {key:'infraType', label:'Infrastructure / Irrigation', type:'text'},
+  {key:'area', label:'Area (Sq.m.)', type:'number'},
+];
+
+function renderRepeatable(field, cols, addLabel){
+  const rec = getCurrent();
+  if(!Array.isArray(rec[field])) rec[field] = [];
+  const arr = rec[field];
+  const c = document.getElementById('tabContent');
+  c.innerHTML = `
+    <div class="card">
+      <h3>${TAB_TITLES[currentTab]} <span class="tag">${arr.length} ${arr.length===1?'entry':'entries'}</span></h3>
+      ${field==='crops' ? '<div class="subnote">Crops are ranked automatically in the dashboard, report, and Google Sheet based on Area (Ha.) from highest to lowest. No manual rank input is needed.</div>' : ''}
+      ${field==='production' ? '<div class="subnote">Enter only the commodity, livestock, or poultry raised and the number of heads. Manual ranking has been removed.</div>' : ''}
+      <div class="rtable-wrap">
+        <table class="rtable">
+          <thead><tr>${cols.map(cc=>`<th>${cc.label}</th>`).join('')}<th></th></tr></thead>
+          <tbody id="rtbody"></tbody>
+        </table>
+      </div>
+      <button class="add-row-btn" id="addRowBtn">+ ${addLabel}</button>
+    </div>
+  `;
+  function renderRows(){
+    const tb = document.getElementById('rtbody');
+    if(arr.length===0){
+      tb.innerHTML = `<tr><td colspan="${cols.length+1}"><div class="empty-note">No entries yet. Use the button below to add the first row.</div></td></tr>`;
+      return;
+    }
+    tb.innerHTML = arr.map((row,i)=>`
+      <tr data-i="${i}">
+        ${cols.map(cc=>{
+          if(cc.type==='select'){
+            return `<td><select data-k="${cc.key}">${cc.options.map(o=>`<option value="${escapeHtml(o)}" ${row[cc.key]===o?'selected':''}>${escapeHtml(o)}</option>`).join('')}</select></td>`;
+          }
+          return `<td><input type="${cc.type}" ${cc.type==='number'?'step="any"':''} data-k="${cc.key}" value="${escapeHtml(row[cc.key])}"></td>`;
+        }).join('')}
+        <td><button class="row-del" data-i="${i}" title="Delete row">×</button></td>
+      </tr>
+    `).join('');
+    tb.querySelectorAll('input,select').forEach(inp=>{
+      inp.addEventListener('input', ()=>{
+        const tr = inp.closest('tr');
+        const i = parseInt(tr.dataset.i);
+        arr[i][inp.dataset.k] = inp.value;
+      });
+    });
+    tb.querySelectorAll('.row-del').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        arr.splice(parseInt(btn.dataset.i),1);
+        renderRows();
+        updateEntryCount();
+      });
+    });
+  }
+  function updateEntryCount(){
+    const tag = document.querySelector('#tabContent .tag');
+    if(tag) tag.textContent = `${arr.length} ${arr.length===1?'entry':'entries'}`;
+  }
+  document.getElementById('addRowBtn').addEventListener('click', ()=>{
+    const blank = {};
+    cols.forEach(cc=>blank[cc.key]='');
+    arr.push(blank);
+    renderRows();
+    updateEntryCount();
+  });
+  renderRows();
+}
+
+/* =========================================================================
+   DASHBOARD
+   ========================================================================= */
+function destroyCharts(){
+  Object.values(charts).forEach(ch=>ch && ch.destroy());
+  charts = {};
+}
+function renderDashboard(){
+  const rec = getCurrent();
+  const t = financeTotals(rec.finance);
+  const b = rec.barangay;
+  const totalMembers = rec.members.length;
+  const memberArea = rec.members.reduce((s,m)=>s+(parseFloat(m.area)||0),0);
+  const cropArea = rec.crops.reduce((s,m)=>s+(parseFloat(m.has)||0),0);
+
+  const c = document.getElementById('tabContent');
+  c.innerHTML = `
+    <div class="kpis">
+      <div class="kpi"><div class="label">Total Land Area</div><div class="value">${fmtNum(b.totalLandArea)}</div><div class="sub">hectares</div></div>
+      <div class="kpi blue"><div class="label">Total Farm Area</div><div class="value">${fmtNum(b.totalFarmArea)}</div><div class="sub">hectares</div></div>
+      <div class="kpi gold"><div class="label">Total Assets</div><div class="value">${fmtPhp(t.totalAssets)}</div><div class="sub">vs prior yr ${fmtPhp(b && rec.finance.assets.prevYear)}</div></div>
+      <div class="kpi ${t.netIncome>=0?'':'red'}"><div class="label">Net Income</div><div class="value">${fmtPhp(t.netIncome)}</div><div class="sub">revenue − expenses</div></div>
+      <div class="kpi blue"><div class="label">Active Members</div><div class="value">${totalMembers}</div><div class="sub">${fmtNum(memberArea)} ha. cultivated</div></div>
+    </div>
+
+
+    <div class="charts-grid">
+      <div class="chart-card">
+        <h4>Financial Position</h4>
+        <canvas id="chFin"></canvas>
+      </div>
+      <div class="chart-card">
+        <h4>Revenue vs. Expenses</h4>
+        <canvas id="chRevExp"></canvas>
+      </div>
+      <div class="chart-card">
+        <h4>Crop Area Distribution (Ha.)</h4>
+        ${rec.crops.length? '<canvas id="chCrops"></canvas>' : '<div class="empty-note">Add entries under Crops Grown to see this chart.</div>'}
+      </div>
+      <div class="chart-card">
+        <h4>Land Tenure of Members</h4>
+        <canvas id="chTenure"></canvas>
+      </div>
+      <div class="chart-card">
+        <h4>Water Source</h4>
+        ${b.waterSource.length? '<canvas id="chWater"></canvas>' : '<div class="empty-note">Select water sources under Barangay Data.</div>'}
+      </div>
+      <div class="chart-card">
+        <h4>Fishery / Livestock Heads</h4>
+        ${rec.production.length? '<canvas id="chProd"></canvas>' : '<div class="empty-note">Add entries under Fishery / Livestock.</div>'}
+      </div>
+    </div>
+  `;
+  destroyCharts();
+  const gridColor = '#CFC9AF55';
+  const fontColor = '#5B6B5D';
+  Chart.defaults.font.family = "'Public Sans', sans-serif";
+  Chart.defaults.color = fontColor;
+
+  charts.fin = new Chart(document.getElementById('chFin'), {
+    type:'bar',
+    data:{ labels:['Assets','Liabilities','Capital'],
+      datasets:[{ data:[t.totalAssets, t.totalLiab, t.totalCapital],
+        backgroundColor:['#2F4F3A','#B33A3A','#C99A2E'], borderRadius:3 }]},
+    options:{ plugins:{legend:{display:false}}, scales:{y:{grid:{color:gridColor}}, x:{grid:{display:false}}} }
+  });
+
+  charts.revExp = new Chart(document.getElementById('chRevExp'), {
+    type:'doughnut',
+    data:{ labels:['Total Revenue','Total Expenses'],
+      datasets:[{ data:[t.totalRevenue, t.totalExpenses], backgroundColor:['#3A7CA5','#C99A2E'] }]},
+    options:{ plugins:{legend:{position:'bottom'}} }
+  });
+
+  if(rec.crops.length){
+    const cropsByArea = sortByNumberDesc(rec.crops, 'has');
+    charts.crops = new Chart(document.getElementById('chCrops'), {
+      type:'bar',
+      data:{ labels: cropsByArea.map(cr=>cr.crop||'—'),
+        datasets:[{ label:'Area (Ha.)', data: cropsByArea.map(cr=>parseFloat(cr.has)||0), backgroundColor:'#2F4F3A', borderRadius:3 }]},
+      options:{ indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{grid:{color:gridColor}}, y:{grid:{display:false}}} }
+    });
+  }
+
+  const tenure = rec.orgInfo.tenure;
+  const tenureLabels = ['Owned (Titled)','Owned (Tax Dec)','Lease','Tenants','FLGMA','CBFMA','Others'];
+  const tenureData = [tenure.owned_titled, tenure.owned_taxdec, tenure.lease, tenure.tenants, tenure.flgma, tenure.cbfma, tenure.others].map(v=>parseFloat(v)||0);
+  charts.tenure = new Chart(document.getElementById('chTenure'), {
+    type:'pie',
+    data:{ labels: tenureLabels, datasets:[{ data: tenureData,
+      backgroundColor:['#2F4F3A','#3A7CA5','#C99A2E','#B33A3A','#7C9885','#8A6FB0','#A9A18C'] }]},
+    options:{ plugins:{legend:{position:'bottom', labels:{boxWidth:11, font:{size:10.5}}}} }
+  });
+
+  if(b.waterSource.length){
+    charts.water = new Chart(document.getElementById('chWater'), {
+      type:'polarArea',
+      data:{ labels: b.waterSource, datasets:[{ data: b.waterSource.map(()=>1),
+        backgroundColor:['#3A7CA5cc','#2F4F3Acc','#C99A2Ecc','#B33A3Acc','#7C9885cc','#8A6FB0cc'] }]},
+      options:{ plugins:{legend:{position:'bottom'}}, scales:{r:{ticks:{display:false}, grid:{color:gridColor}}} }
+    });
+  }
+
+  if(rec.production.length){
+    charts.prod = new Chart(document.getElementById('chProd'), {
+      type:'bar',
+      data:{ labels: rec.production.map(p=>p.item||'—'),
+        datasets:[{ label:'Heads', data: rec.production.map(p=>parseFloat(p.heads)||0), backgroundColor:'#C99A2E', borderRadius:3 }]},
+      options:{ plugins:{legend:{display:false}}, scales:{y:{grid:{color:gridColor}}, x:{grid:{display:false}}} }
+    });
+  }
+}
+
+/* =========================================================================
+   PRINTABLE REPORT
+   ========================================================================= */
+function renderReport(){
+  const rec = getCurrent();
+  const t = financeTotals(rec.finance);
+  const b = rec.barangay;
+  const ex = rec.orgInfo.existence;
+  const c = document.getElementById('tabContent');
+
+  const listBlock = (title, arr, cols) => {
+    if(!arr.length) return `<div class="report-section"><h5>${title}</h5><div class="empty-note">No records.</div></div>`;
+    return `<div class="report-section"><h5>${title}</h5>
+      <table class="rtable"><thead><tr>${cols.map(cc=>`<th>${cc.label}</th>`).join('')}</tr></thead>
+      <tbody>${arr.map(row=>`<tr>${cols.map(cc=>`<td>${escapeHtml(row[cc.key])}</td>`).join('')}</tr>`).join('')}</tbody></table>
+    </div>`;
+  };
+
+  c.innerHTML = `
+    <div class="card">
+      <div class="report-header">
+        <div>
+          <div class="eyebrow">FCA Profile — Certified Record</div>
+          <h2 style="font-size:22px;">${escapeHtml(rec.org.name)}</h2>
+          <div style="font-size:12px; color:var(--ink-soft); margin-top:2px;">${escapeHtml(rec.org.address)}</div>
+        </div>
+        <div class="stamp">Generated ${new Date().toLocaleDateString('en-PH',{year:'numeric',month:'long',day:'numeric'})}</div>
+      </div>
+
+      <div class="report-section">
+        <h5>Barangay Data</h5>
+        <div class="kv">
+          <div><span>Total Land Area</span><b>${fmtNum(b.totalLandArea)} ha.</b></div>
+          <div><span>Total Farm Area</span><b>${fmtNum(b.totalFarmArea)} ha.</b></div>
+          <div><span>Potential Irrigated Lowland</span><b>${fmtNum(b.potentialIrrLowland)} ha.</b></div>
+          <div><span>Potential Irrigated Highland</span><b>${fmtNum(b.potentialIrrHighland)} ha.</b></div>
+          <div><span>Elevation</span><b>${escapeHtml(b.elevation)}</b></div>
+          <div><span>Water Source</span><b>${b.waterSource.join(', ')||'—'}</b></div>
+          <div><span>Electricity</span><b>${b.electricity.join(', ')||'—'}</b></div>
+          <div><span>Topography</span><b>${b.topography.join(', ')||'—'}</b></div>
+        </div>
+      </div>
+
+      <div class="report-section">
+        <h5>Organizational Documents on File</h5>
+        <div class="kv">
+          <div><span>Constitution & By-Laws</span><b>${ex.constitution?'Yes':'No'}</b></div>
+          <div><span>Record of Resolutions</span><b>${ex.resolutions?'Yes':'No'}</b></div>
+          <div><span>Annual Workplan</span><b>${ex.workplan?'Yes':'No'}</b></div>
+          <div><span>Annual Budget</span><b>${ex.budget?'Yes':'No'}</b></div>
+          <div><span>Attendance Log Book</span><b>${ex.attendance?'Yes':'No'}</b></div>
+        </div>
+      </div>
+
+      <div class="report-section">
+        <h5>Financial Summary</h5>
+        <div class="kv">
+          <div><span>Total Assets</span><b>${fmtPhp(t.totalAssets)}</b></div>
+          <div><span>Total Liabilities</span><b>${fmtPhp(t.totalLiab)}</b></div>
+          <div><span>Total Capital</span><b>${fmtPhp(t.totalCapital)}</b></div>
+          <div><span>Total Revenue</span><b>${fmtPhp(t.totalRevenue)}</b></div>
+          <div><span>Total Expenses</span><b>${fmtPhp(t.totalExpenses)}</b></div>
+          <div><span>Net Income</span><b>${fmtPhp(t.netIncome)}</b></div>
+        </div>
+      </div>
+
+      ${listBlock('Major Crops Grown — Sorted by Area Planted', sortByNumberDesc(rec.crops, 'has'), CROPS_COLS)}
+      ${listBlock('Fishery, Livestock & Poultry', rec.production, PRODUCTION_COLS)}
+      ${listBlock('Top 5 Buyers', rec.buyers, BUYERS_COLS)}
+      ${listBlock('Sources of Financing', rec.financing, FINANCING_COLS)}
+      ${listBlock('Capacity Enhancement Activities', rec.trainings, TRAININGS_COLS)}
+      ${listBlock('Materials / Equipment / Machinery Received', rec.equipment, ASSISTANCE_COLS)}
+      ${listBlock('Agri-Infrastructures Received', rec.infra, INFRA_COLS)}
+      ${listBlock('Irrigation Projects Received', rec.irrigation, INFRA_COLS)}
+      ${listBlock('List of Active Members', rec.members, MEMBERS_COLS)}
+    </div>
+  `;
+}
+
+/* =========================================================================
+   INIT
+   ========================================================================= */
+async function initApp(){
+  loadRecords();
+  renderTab();
+  await loadRecordsFromSheetOnStartup();
+}
+initApp();
+</script>
+</body>
+</html>
